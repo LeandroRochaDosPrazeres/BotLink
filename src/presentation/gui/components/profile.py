@@ -1,11 +1,10 @@
 """
 Profile Panel Component - FE-04
 
-Extended profile with bio and attachments.
+Extended profile with bio.
 """
 
 import flet as ft
-from pathlib import Path
 from typing import Callable, Optional
 
 from ..styles import Theme
@@ -17,42 +16,20 @@ def create_profile_panel(
     initial_bio: str = "",
 ) -> ft.Container:
     """
-    Create extended profile panel.
+    Create extended profile panel (web-compatible).
     
     Features:
     - Bio/cover letter textarea
-    - Additional attachments list
     """
-    _attachments: list[Path] = []
-    
-    attachments_list = ft.Column(controls=[], spacing=Theme.SPACING_XS)
     
     def _on_bio_change_handler(e) -> None:
         """Handle bio text change."""
         if on_bio_change:
             on_bio_change(e.control.value or "")
     
-    def _on_attachment_picked(e) -> None:
-        """Handle attachment file selection."""
-        if not e.files:
-            return
-        
-        for file in e.files:
-            path = Path(file.path)
-            if path not in _attachments:
-                _attachments.append(path)
-                attachments_list.controls.append(
-                    ft.Row([
-                        ft.Icon("insert_drive_file", size=16),
-                        ft.Text(file.name, expand=True),
-                    ])
-                )
-        
-        attachments_list.update()
-    
     bio_input = ft.TextField(
         label="Bio / Carta de Apresentação",
-        hint_text="Descreva seu perfil profissional, projetos relevantes...",
+        hint_text="Descreva seu perfil profissional, projetos relevantes, motivações...",
         multiline=True,
         min_lines=6,
         max_lines=12,
@@ -61,23 +38,11 @@ def create_profile_panel(
         on_change=_on_bio_change_handler,
     )
     
-    file_picker = ft.FilePicker()
-    file_picker.on_result = _on_attachment_picked
-    page.overlay.append(file_picker)
-    
     return ft.Container(
         content=ft.Column([
             ft.Text("📝 Perfil Estendido", size=18, weight="bold"),
+            ft.Text("Informações adicionais para personalizar suas candidaturas:", size=12, color=Theme.DARK_TEXT_SECONDARY),
             bio_input,
-            ft.Text("Anexos Extras (Portfólio, Certificados):", size=14),
-            ft.OutlinedButton(
-                "Adicionar Anexo",
-                icon="attach_file",
-                on_click=lambda _: file_picker.pick_files(
-                    dialog_title="Selecione arquivo adicional",
-                ),
-            ),
-            attachments_list,
         ], spacing=Theme.SPACING_MD),
         bgcolor=Theme.DARK_CARD,
         border_radius=Theme.RADIUS_LG,

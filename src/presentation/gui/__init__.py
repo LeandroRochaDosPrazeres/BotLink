@@ -1,4 +1,4 @@
 # GUI Package
-from .app import BotLinkApp
+from .app import build_app
 
-__all__ = ["BotLinkApp"]
+__all__ = ["build_app"]

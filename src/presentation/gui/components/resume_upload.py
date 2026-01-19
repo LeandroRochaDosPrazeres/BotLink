@@ -1,15 +1,13 @@
 """
 Resume Upload Component - FE-03
 
-PDF/DOCX resume upload with text extraction preview.
+Resume profile input for web mode.
 """
 
 import flet as ft
-from pathlib import Path
 from typing import Callable, Optional
 
 from src.domain.entities import Candidate
-from src.infrastructure.parsers import ResumeParser
 from ..styles import Theme
 
 
@@ -18,95 +16,106 @@ def create_resume_upload(
     on_resume_loaded: Optional[Callable[[Candidate], None]] = None,
 ) -> ft.Container:
     """
-    Create resume upload component.
+    Create resume upload component (web-compatible).
     
     Features:
-    - File picker for PDF/DOCX
-    - Text extraction preview
-    - Skill detection display
+    - Text area for pasting resume content
+    - Manual info input
+    - Skill input
     """
     _candidate: Optional[Candidate] = None
     
-    file_name = ft.Text("Nenhum arquivo selecionado")
-    
-    preview_text = ft.TextField(
-        label="Texto extraído",
-        multiline=True,
-        min_lines=5,
-        max_lines=10,
-        read_only=True,
+    name_input = ft.TextField(
+        label="Nome Completo",
+        hint_text="Seu nome completo",
         border_radius=Theme.RADIUS_MD,
     )
     
-    skills_row = ft.Row(controls=[], wrap=True, spacing=Theme.SPACING_XS)
+    email_input = ft.TextField(
+        label="Email",
+        hint_text="seu.email@exemplo.com",
+        border_radius=Theme.RADIUS_MD,
+        expand=True,
+    )
     
-    def _on_file_picked(e) -> None:
-        """Handle file selection."""
+    phone_input = ft.TextField(
+        label="Telefone",
+        hint_text="(11) 99999-9999",
+        border_radius=Theme.RADIUS_MD,
+        expand=True,
+    )
+    
+    resume_text_input = ft.TextField(
+        label="Cole o texto do seu currículo aqui",
+        hint_text="Cole aqui o conteúdo do seu currículo (experiências, formação, habilidades...)",
+        multiline=True,
+        min_lines=8,
+        max_lines=15,
+        border_radius=Theme.RADIUS_MD,
+    )
+    
+    skills_input = ft.TextField(
+        label="Habilidades (separadas por vírgula)",
+        hint_text="Python, JavaScript, SQL, React...",
+        border_radius=Theme.RADIUS_MD,
+    )
+    
+    status_text = ft.Text("", color=Theme.SUCCESS)
+    
+    def _on_save_profile(e) -> None:
+        """Save the profile information."""
         nonlocal _candidate
         
-        if not e.files:
+        name = name_input.value or ""
+        email = email_input.value or ""
+        phone = phone_input.value or ""
+        resume_text = resume_text_input.value or ""
+        skills_str = skills_input.value or ""
+        
+        # Parse skills
+        skills = [s.strip() for s in skills_str.split(",") if s.strip()]
+        
+        if not name or not resume_text:
+            status_text.value = "⚠️ Preencha pelo menos o nome e o texto do currículo"
+            status_text.color = Theme.WARNING
+            status_text.update()
             return
         
-        file = e.files[0]
-        file_name.value = file.name
+        # Create candidate
+        _candidate = Candidate(
+            name=name,
+            email=email,
+            phone=phone,
+            resume_text=resume_text,
+            resume_path=None,
+            skills=skills,
+        )
         
-        try:
-            path = Path(file.path)
-            text = ResumeParser.extract_text(path)
-            contact = ResumeParser.extract_contact_info(text)
-            skills = ResumeParser.extract_skills(text)
-            
-            # Update preview
-            preview_text.value = text[:2000] + ("..." if len(text) > 2000 else "")
-            
-            # Update skills chips
-            skills_row.controls = [
-                ft.Chip(label=ft.Text(skill), selected=True)
-                for skill in skills[:10]
-            ]
-            
-            # Create candidate
-            _candidate = Candidate(
-                name=contact.get("name") or "",
-                email=contact.get("email") or "",
-                phone=contact.get("phone") or "",
-                resume_text=text,
-                resume_path=path,
-                skills=skills,
-            )
-            
-            if on_resume_loaded:
-                on_resume_loaded(_candidate)
-            
-        except Exception as ex:
-            preview_text.value = f"Erro ao processar arquivo: {ex}"
+        status_text.value = f"✅ Perfil salvo: {name}"
+        status_text.color = Theme.SUCCESS
+        status_text.update()
         
-        file_name.update()
-        preview_text.update()
-        skills_row.update()
+        if on_resume_loaded:
+            on_resume_loaded(_candidate)
     
-    file_picker = ft.FilePicker()
-    file_picker.on_result = _on_file_picked
-    page.overlay.append(file_picker)
+    save_button = ft.ElevatedButton(
+        "Salvar Perfil",
+        icon="save",
+        bgcolor=Theme.SUCCESS,
+        color="white",
+        on_click=_on_save_profile,
+    )
     
     return ft.Container(
         content=ft.Column([
-            ft.Text("📄 Upload de Currículo", size=18, weight="bold"),
-            ft.Row([
-                ft.ElevatedButton(
-                    "Selecionar Arquivo",
-                    icon="upload_file",
-                    on_click=lambda _: file_picker.pick_files(
-                        allowed_extensions=["pdf", "docx", "doc"],
-                        dialog_title="Selecione seu currículo",
-                    ),
-                ),
-                file_name,
-            ], spacing=Theme.SPACING_MD),
-            preview_text,
-            ft.Text("Habilidades detectadas:", size=14),
-            skills_row,
-        ], spacing=Theme.SPACING_MD),
+            ft.Text("📄 Perfil do Candidato", size=18, weight="bold"),
+            ft.Text("Preencha suas informações para a candidatura automática:", size=12, color=Theme.DARK_TEXT_SECONDARY),
+            name_input,
+            ft.Row([email_input, phone_input], spacing=Theme.SPACING_MD),
+            resume_text_input,
+            skills_input,
+            ft.Row([save_button, status_text], spacing=Theme.SPACING_MD),
+        ], spacing=Theme.SPACING_MD, scroll="auto"),
         bgcolor=Theme.DARK_CARD,
         border_radius=Theme.RADIUS_LG,
         padding=Theme.SPACING_MD,
