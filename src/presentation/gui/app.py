@@ -11,26 +11,37 @@ from datetime import datetime
 from pathlib import Path
 
 
-# Colors
-PRIMARY = "#6366f1"
-SUCCESS = "#22c55e"
-WARNING = "#f59e0b"
-ERROR = "#ef4444"
-DARK_BG = "#0f172a"
-DARK_CARD = "#1e293b"
-LIGHT_BG = "#f8fafc"
-LIGHT_CARD = "#e2e8f0"
+# === MODERN COLOR PALETTE ===
+PRIMARY = "#8B5CF6"  # Purple
+PRIMARY_DARK = "#7C3AED"
+PRIMARY_LIGHT = "#A78BFA"
+ACCENT = "#06B6D4"  # Cyan
+SUCCESS = "#10B981"  # Emerald
+WARNING = "#F59E0B"  # Amber
+ERROR = "#EF4444"  # Red
+DARK_BG = "#0F0F1A"  # Deep dark
+DARK_CARD = "#1A1A2E"  # Card background
+DARK_CARD_HOVER = "#252542"
+DARK_BORDER = "#2D2D4A"
+TEXT_PRIMARY = "#F8FAFC"
+TEXT_SECONDARY = "#94A3B8"
+TEXT_MUTED = "#64748B"
+LIGHT_BG = "#F1F5F9"
+LIGHT_CARD = "#FFFFFF"
 
 
 def build_app(page: ft.Page) -> None:
     """Build the main BOTLink application with real backend."""
     
     # === PAGE CONFIGURATION ===
-    page.title = "BOTLink - Automação Cognitiva de Candidaturas"
+    page.title = "BOTLink - Automação Inteligente de Candidaturas"
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = DARK_BG
-    page.padding = 20
+    page.padding = 0
     page.scroll = ft.ScrollMode.AUTO
+    page.fonts = {
+        "Inter": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    }
     
     # === STATE ===
     state = {
@@ -43,10 +54,11 @@ def build_app(page: ft.Page) -> None:
         "resume": "",
         "skills": "",
         "bio": "",
+        "extra_info": "",
         "is_running": False,
         "applications_today": 0,
         "bot_task": None,
-        "applied_jobs": [],  # List of applied jobs for the jobs log
+        "applied_jobs": [],
     }
     
     # === LOG SYSTEM ===
@@ -338,12 +350,16 @@ def build_app(page: ft.Page) -> None:
             pass
     
     # === FE-01: JOB PANEL ===
-    keywords_row = ft.Row(wrap=True, spacing=4)
+    keywords_row = ft.Row(wrap=True, spacing=8)
     keyword_field = ft.TextField(
         label="Cargo / Palavra-chave",
-        hint_text="Ex: Python Developer",
+        hint_text="Ex: Python Developer, Data Engineer...",
         expand=True,
-        border_radius=8,
+        border_radius=12,
+        border_color=DARK_BORDER,
+        focused_border_color=PRIMARY,
+        cursor_color=PRIMARY,
+        text_size=14,
     )
     
     def add_keyword_click(e):
@@ -368,17 +384,26 @@ def build_app(page: ft.Page) -> None:
         keywords_row.controls = [
             ft.Container(
                 content=ft.Row([
-                    ft.Text(kw, size=12, color=ft.Colors.WHITE),
+                    ft.Text(kw, size=13, color=ft.Colors.WHITE, weight=ft.FontWeight.W_500),
                     ft.IconButton(
-                        icon=ft.Icons.CLOSE,
-                        icon_size=14,
-                        icon_color=ft.Colors.WHITE,
+                        icon=ft.Icons.CLOSE_ROUNDED,
+                        icon_size=16,
+                        icon_color=ft.Colors.WHITE70,
                         on_click=remove_keyword(kw),
+                        style=ft.ButtonStyle(padding=0),
                     ),
-                ], tight=True, spacing=0),
-                bgcolor=PRIMARY,
-                border_radius=16,
-                padding=ft.padding.only(left=12, right=2, top=2, bottom=2),
+                ], tight=True, spacing=2),
+                gradient=ft.LinearGradient(
+                    colors=[PRIMARY, PRIMARY_DARK],
+                ),
+                border_radius=20,
+                padding=ft.padding.only(left=14, right=6, top=6, bottom=6),
+                shadow=ft.BoxShadow(
+                    spread_radius=0,
+                    blur_radius=8,
+                    color=f"{PRIMARY}40",
+                    offset=ft.Offset(0, 2),
+                ),
             )
             for kw in state["keywords"]
         ]
@@ -386,73 +411,110 @@ def build_app(page: ft.Page) -> None:
     location_field = ft.TextField(
         label="Localização",
         hint_text="Ex: São Paulo, Brasil",
-        border_radius=8,
+        border_radius=12,
+        border_color=DARK_BORDER,
+        focused_border_color=PRIMARY,
+        cursor_color=PRIMARY,
+        text_size=14,
         on_change=lambda e: state.update({"location": e.control.value or ""}),
     )
     
     remote_switch = ft.Switch(
         label="Apenas Remoto",
         value=False,
+        active_color=PRIMARY,
         on_change=lambda e: state.update({"remote_only": e.control.value}),
     )
     
     job_panel = ft.Container(
         content=ft.Column([
             ft.Row([
-                ft.Icon(ft.Icons.WORK, color=PRIMARY),
-                ft.Text("Configuração de Vagas", size=16, weight=ft.FontWeight.BOLD),
-            ]),
-            ft.Divider(height=1),
+                ft.Container(
+                    content=ft.Icon(ft.Icons.WORK_ROUNDED, color=ft.Colors.WHITE, size=20),
+                    bgcolor=PRIMARY,
+                    border_radius=10,
+                    padding=10,
+                ),
+                ft.Column([
+                    ft.Text("Configuração de Busca", size=18, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                    ft.Text("Defina os cargos e localização", size=12, color=TEXT_MUTED),
+                ], spacing=2),
+            ], spacing=12),
+            ft.Container(height=8),
             ft.Row([
                 keyword_field,
-                ft.IconButton(icon=ft.Icons.ADD_CIRCLE, icon_color=SUCCESS, on_click=add_keyword_click),
-            ]),
+                ft.Container(
+                    content=ft.IconButton(
+                        icon=ft.Icons.ADD_ROUNDED,
+                        icon_color=ft.Colors.WHITE,
+                        icon_size=24,
+                        on_click=add_keyword_click,
+                    ),
+                    bgcolor=SUCCESS,
+                    border_radius=12,
+                ),
+            ], spacing=8),
             keywords_row,
             location_field,
-            remote_switch,
-        ], spacing=10),
+            ft.Container(
+                content=ft.Row([
+                    ft.Icon(ft.Icons.HOME_WORK_ROUNDED, color=TEXT_MUTED, size=20),
+                    remote_switch,
+                ], spacing=8),
+                padding=ft.padding.only(top=4),
+            ),
+        ], spacing=12),
         bgcolor=DARK_CARD,
-        border_radius=12,
-        padding=16,
+        border_radius=16,
+        padding=20,
+        border=ft.border.all(1, DARK_BORDER),
     )
     
     # === INSTRUÇÃO (painel informativo) ===
     info_panel = ft.Container(
         content=ft.Column([
             ft.Row([
-                ft.Icon(ft.Icons.INFO_OUTLINE, color=PRIMARY),
-                ft.Text("Como Usar", size=16, weight=ft.FontWeight.BOLD),
-            ]),
-            ft.Divider(height=1),
-            ft.Text("1️⃣ Preencha os campos de busca e perfil", size=13),
-            ft.Text("2️⃣ Clique em 'Iniciar BOT'", size=13),
-            ft.Text("3️⃣ Uma janela do navegador abrirá", size=13),
-            ft.Text("4️⃣ Na primeira vez, faça login no LinkedIn", size=13),
-            ft.Text("5️⃣ O login será salvo para próximas vezes!", size=13),
-            ft.Divider(height=1),
+                ft.Container(
+                    content=ft.Icon(ft.Icons.LIGHTBULB_ROUNDED, color=WARNING, size=20),
+                    bgcolor=f"{WARNING}20",
+                    border_radius=10,
+                    padding=10,
+                ),
+                ft.Column([
+                    ft.Text("Como Usar", size=18, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                    ft.Text("Guia rápido de início", size=12, color=TEXT_MUTED),
+                ], spacing=2),
+            ], spacing=12),
+            ft.Container(height=4),
+            ft.Container(
+                content=ft.Column([
+                    ft.Row([ft.Text("1", size=12, color=PRIMARY, weight=ft.FontWeight.BOLD), ft.Text("Cole seu currículo no campo de contexto", size=13, color=TEXT_SECONDARY)], spacing=8),
+                    ft.Row([ft.Text("2", size=12, color=PRIMARY, weight=ft.FontWeight.BOLD), ft.Text("Adicione as keywords das vagas desejadas", size=13, color=TEXT_SECONDARY)], spacing=8),
+                    ft.Row([ft.Text("3", size=12, color=PRIMARY, weight=ft.FontWeight.BOLD), ft.Text("Clique em 'Iniciar BOT'", size=13, color=TEXT_SECONDARY)], spacing=8),
+                    ft.Row([ft.Text("4", size=12, color=PRIMARY, weight=ft.FontWeight.BOLD), ft.Text("Faça login no LinkedIn (apenas 1ª vez)", size=13, color=TEXT_SECONDARY)], spacing=8),
+                    ft.Row([ft.Text("5", size=12, color=PRIMARY, weight=ft.FontWeight.BOLD), ft.Text("A IA responde as perguntas automaticamente!", size=13, color=TEXT_SECONDARY)], spacing=8),
+                ], spacing=8),
+                bgcolor=DARK_BG,
+                border_radius=12,
+                padding=16,
+            ),
+            ft.Container(height=8),
             ft.Row([
-                ft.Icon(ft.Icons.CHECK_CIRCLE, color=SUCCESS, size=16),
-                ft.Text("Navegador separado - não interfere no seu Chrome", size=12, color=SUCCESS),
-            ], spacing=4),
-            ft.Row([
-                ft.Icon(ft.Icons.SECURITY, color=ft.Colors.GREY_400, size=16),
-                ft.Text("Suas credenciais ficam apenas no LinkedIn", size=12, color=ft.Colors.GREY_400),
-            ], spacing=4),
-            ft.Row([
-                ft.Icon(ft.Icons.SAVE, color=ft.Colors.GREY_400, size=16),
-                ft.Text("Sessão salva em data/browser_profile/", size=12, color=ft.Colors.GREY_400),
-            ], spacing=4),
-        ], spacing=6),
+                ft.Icon(ft.Icons.VERIFIED_USER_ROUNDED, color=SUCCESS, size=16),
+                ft.Text("Navegador isolado • Sessão persistente", size=11, color=SUCCESS),
+            ], spacing=6),
+        ], spacing=12),
         bgcolor=DARK_CARD,
-        border_radius=12,
-        padding=16,
+        border_radius=16,
+        padding=20,
+        border=ft.border.all(1, DARK_BORDER),
     )
     
     # === FE-05: CONTROLS PANEL ===
-    status_indicator = ft.Container(width=12, height=12, border_radius=6, bgcolor=ft.Colors.GREY)
-    status_text = ft.Text("Parado", weight=ft.FontWeight.BOLD)
-    progress_bar = ft.ProgressBar(value=0, color=PRIMARY, bgcolor=DARK_BG)
-    progress_text = ft.Text("0 / 50 candidaturas hoje", size=12)
+    status_indicator = ft.Container(width=14, height=14, border_radius=7, bgcolor=TEXT_MUTED)
+    status_text = ft.Text("Parado", weight=ft.FontWeight.W_600, color=TEXT_SECONDARY, size=14)
+    progress_bar = ft.ProgressBar(value=0, color=PRIMARY, bgcolor=DARK_BG, bar_height=8, border_radius=4)
+    progress_text = ft.Text("0 / 50 candidaturas hoje", size=12, color=TEXT_MUTED)
     
     def start_bot_click(e):
         if state["is_running"]:
@@ -462,8 +524,8 @@ def build_app(page: ft.Page) -> None:
         if not state["keywords"]:
             add_log("⚠️ Adicione ao menos uma keyword de vaga", "warning")
             return
-        if not state["name"] or not state["resume"]:
-            add_log("⚠️ Preencha seu perfil (nome e currículo)", "warning")
+        if not state["resume"]:
+            add_log("⚠️ Cole seu currículo no campo 'Contexto para IA'", "warning")
             return
         
         state["is_running"] = True
@@ -486,138 +548,144 @@ def build_app(page: ft.Page) -> None:
     controls_panel = ft.Container(
         content=ft.Column([
             ft.Row([
-                ft.Icon(ft.Icons.SMART_TOY, color=PRIMARY),
-                ft.Text("Controles do BOT", size=16, weight=ft.FontWeight.BOLD),
-            ]),
-            ft.Divider(height=1),
+                ft.Container(
+                    content=ft.Icon(ft.Icons.ROCKET_LAUNCH_ROUNDED, color=ft.Colors.WHITE, size=20),
+                    bgcolor=PRIMARY,
+                    border_radius=10,
+                    padding=10,
+                ),
+                ft.Column([
+                    ft.Text("Controles do BOT", size=18, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                    ft.Text("Inicie ou pare a automação", size=12, color=TEXT_MUTED),
+                ], spacing=2),
+            ], spacing=12),
+            ft.Container(height=8),
             ft.Row([
-                ft.Button(
-                    "Iniciar BOT",
-                    icon=ft.Icons.PLAY_ARROW,
-                    style=ft.ButtonStyle(bgcolor=SUCCESS, color=ft.Colors.WHITE),
+                ft.ElevatedButton(
+                    content=ft.Row([
+                        ft.Icon(ft.Icons.PLAY_ARROW_ROUNDED, color=ft.Colors.WHITE),
+                        ft.Text("Iniciar BOT", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.WHITE),
+                    ], spacing=8),
+                    bgcolor=SUCCESS,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=12),
+                        padding=ft.padding.symmetric(horizontal=20, vertical=14),
+                        shadow_color=f"{SUCCESS}60",
+                        elevation=4,
+                    ),
                     on_click=start_bot_click,
                 ),
-                ft.Button(
-                    "Parar BOT",
-                    icon=ft.Icons.STOP,
-                    style=ft.ButtonStyle(bgcolor=ERROR, color=ft.Colors.WHITE),
+                ft.ElevatedButton(
+                    content=ft.Row([
+                        ft.Icon(ft.Icons.STOP_ROUNDED, color=ft.Colors.WHITE),
+                        ft.Text("Parar", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.WHITE),
+                    ], spacing=8),
+                    bgcolor=ERROR,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=12),
+                        padding=ft.padding.symmetric(horizontal=20, vertical=14),
+                    ),
                     on_click=stop_bot_click,
                 ),
-            ], spacing=8),
-            ft.Row([status_indicator, status_text], spacing=8),
-            ft.Divider(height=1),
-            ft.Text("Progresso Diário", size=12, color=ft.Colors.GREY_400),
+            ], spacing=12),
+            ft.Container(height=12),
+            ft.Container(
+                content=ft.Row([
+                    status_indicator,
+                    status_text,
+                    ft.Container(expand=True),
+                    ft.Text("|", color=DARK_BORDER),
+                    ft.Container(expand=True),
+                    progress_text,
+                ], spacing=12),
+                bgcolor=DARK_BG,
+                border_radius=12,
+                padding=16,
+            ),
             progress_bar,
-            progress_text,
-        ], spacing=10),
+        ], spacing=8),
         bgcolor=DARK_CARD,
-        border_radius=12,
-        padding=16,
+        border_radius=16,
+        padding=20,
+        border=ft.border.all(1, DARK_BORDER),
     )
     
-    # === FE-03 & FE-04: PROFILE PANEL ===
-    name_field = ft.TextField(
-        label="Nome Completo",
-        hint_text="Seu nome",
-        border_radius=8,
-        on_change=lambda e: state.update({"name": e.control.value or ""}),
-    )
-    
-    email_field = ft.TextField(
-        label="Email",
-        hint_text="seu.email@exemplo.com",
-        border_radius=8,
-        expand=True,
-        on_change=lambda e: state.update({"email": e.control.value or ""}),
-    )
-    
-    phone_field = ft.TextField(
-        label="Telefone",
-        hint_text="(11) 99999-9999",
-        border_radius=8,
-        expand=True,
-        on_change=lambda e: state.update({"phone": e.control.value or ""}),
-    )
-    
-    resume_field = ft.TextField(
-        label="Currículo (cole o texto aqui)",
-        hint_text="Cole o conteúdo do seu currículo...",
+    # === CONTEXT PANEL (único campo para IA) ===
+    context_field = ft.TextField(
+        hint_text="""Cole aqui TODAS as informações para a IA:
+
+📄 Currículo completo
+👤 Nome, email, telefone
+💰 Pretensão salarial
+📅 Disponibilidade de início
+🏠 Aceita presencial/híbrido/remoto?
+📊 Anos de experiência
+🌍 Idiomas e níveis
+📜 Certificações
+💡 Outras informações relevantes""",
         multiline=True,
-        min_lines=5,
-        max_lines=8,
-        border_radius=8,
-        on_change=lambda e: state.update({"resume": e.control.value or ""}),
+        min_lines=15,
+        max_lines=25,
+        border_radius=16,
+        border_color=DARK_BORDER,
+        focused_border_color=PRIMARY,
+        cursor_color=PRIMARY,
+        text_size=14,
+        content_padding=20,
+        expand=True,
+        on_change=lambda e: state.update({
+            "resume": e.control.value or "",
+            "extra_info": e.control.value or "",
+            "name": "Candidato",
+        }),
     )
     
-    skills_field = ft.TextField(
-        label="Habilidades (separadas por vírgula)",
-        hint_text="Python, JavaScript, SQL, AWS...",
-        border_radius=8,
-        on_change=lambda e: state.update({"skills": e.control.value or ""}),
-    )
-    
-    profile_status = ft.Text("", size=12)
-    
-    def save_profile_click(e):
-        if state["name"] and state["resume"]:
-            profile_status.value = f"✅ Perfil salvo: {state['name']}"
-            profile_status.color = SUCCESS
-            add_log(f"📄 Perfil salvo: {state['name']}", "success")
-        else:
-            profile_status.value = "⚠️ Preencha nome e currículo"
-            profile_status.color = WARNING
-            add_log("⚠️ Preencha nome e currículo", "warning")
-        page.update()
-    
-    profile_panel = ft.Container(
+    context_panel = ft.Container(
         content=ft.Column([
             ft.Row([
-                ft.Icon(ft.Icons.PERSON, color=PRIMARY),
-                ft.Text("Perfil do Candidato", size=16, weight=ft.FontWeight.BOLD),
-            ]),
-            ft.Divider(height=1),
-            name_field,
-            ft.Row([email_field, phone_field], spacing=8),
-            resume_field,
-            skills_field,
-            ft.Row([
-                ft.Button(
-                    "Salvar Perfil",
-                    icon=ft.Icons.SAVE,
-                    style=ft.ButtonStyle(bgcolor=SUCCESS, color=ft.Colors.WHITE),
-                    on_click=save_profile_click,
+                ft.Container(
+                    content=ft.Icon(ft.Icons.PSYCHOLOGY_ROUNDED, color=ft.Colors.WHITE, size=22),
+                    gradient=ft.LinearGradient(
+                        colors=[ACCENT, PRIMARY],
+                    ),
+                    border_radius=12,
+                    padding=12,
                 ),
-                profile_status,
-            ], spacing=8),
-        ], spacing=10),
-        bgcolor=DARK_CARD,
-        border_radius=12,
-        padding=16,
-    )
-    
-    # === BIO PANEL ===
-    bio_field = ft.TextField(
-        label="Bio / Carta de Apresentação",
-        hint_text="Descreva seu perfil profissional, motivações...",
-        multiline=True,
-        min_lines=3,
-        max_lines=5,
-        border_radius=8,
-        on_change=lambda e: state.update({"bio": e.control.value or ""}),
-    )
-    
-    bio_panel = ft.Container(
-        content=ft.Column([
+                ft.Column([
+                    ft.Text("Contexto para IA", size=20, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                    ft.Text("Suas informações para respostas automáticas", size=12, color=TEXT_MUTED),
+                ], spacing=2, expand=True),
+            ], spacing=14),
+            ft.Container(height=4),
+            ft.Container(
+                content=ft.Row([
+                    ft.Icon(ft.Icons.AUTO_AWESOME_ROUNDED, color=PRIMARY, size=16),
+                    ft.Text(
+                        "A IA usará estas informações para preencher formulários automaticamente",
+                        size=12,
+                        color=TEXT_SECONDARY,
+                    ),
+                ], spacing=8),
+                bgcolor=f"{PRIMARY}15",
+                border_radius=8,
+                padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            ),
+            ft.Container(height=8),
+            context_field,
             ft.Row([
-                ft.Icon(ft.Icons.EDIT_NOTE, color=PRIMARY),
-                ft.Text("Perfil Estendido", size=16, weight=ft.FontWeight.BOLD),
-            ]),
-            ft.Divider(height=1),
-            bio_field,
-        ], spacing=10),
+                ft.Icon(ft.Icons.INFO_OUTLINE, color=TEXT_MUTED, size=14),
+                ft.Text(
+                    "Quanto mais detalhes, melhor a IA responde!",
+                    size=11,
+                    color=TEXT_MUTED,
+                    italic=True,
+                ),
+            ], spacing=6),
+        ], spacing=12),
         bgcolor=DARK_CARD,
-        border_radius=12,
-        padding=16,
+        border_radius=16,
+        padding=20,
+        border=ft.border.all(1, DARK_BORDER),
     )
     
     # === FE-06: LOG PANEL ===
@@ -625,16 +693,26 @@ def build_app(page: ft.Page) -> None:
     # Jobs log dialog
     jobs_log_dialog = ft.AlertDialog(
         modal=True,
-        title=ft.Text("📋 Vagas Processadas"),
+        title=ft.Row([
+            ft.Icon(ft.Icons.WORK_HISTORY_ROUNDED, color=PRIMARY),
+            ft.Text("Vagas Processadas", weight=ft.FontWeight.BOLD),
+        ], spacing=8),
         content=ft.Container(
             content=jobs_log_column,
-            width=500,
-            height=400,
+            width=550,
+            height=450,
+            bgcolor=DARK_BG,
+            border_radius=12,
+            padding=12,
         ),
         actions=[
-            ft.TextButton("Fechar", on_click=lambda e: close_jobs_dialog()),
+            ft.TextButton(
+                content=ft.Text("Fechar", color=TEXT_SECONDARY),
+                on_click=lambda e: close_jobs_dialog(),
+            ),
         ],
         actions_alignment=ft.MainAxisAlignment.END,
+        bgcolor=DARK_CARD,
     )
     
     def open_jobs_dialog(e):
@@ -651,88 +729,114 @@ def build_app(page: ft.Page) -> None:
     log_panel = ft.Container(
         content=ft.Column([
             ft.Row([
-                ft.Icon(ft.Icons.TERMINAL, color=PRIMARY),
-                ft.Text("Log de Atividades", size=16, weight=ft.FontWeight.BOLD),
-                ft.Container(expand=True),  # Spacer
+                ft.Container(
+                    content=ft.Icon(ft.Icons.TERMINAL_ROUNDED, color=ft.Colors.WHITE, size=18),
+                    bgcolor=DARK_BG,
+                    border_radius=8,
+                    padding=8,
+                ),
+                ft.Text("Log de Atividades", size=16, weight=ft.FontWeight.W_600, color=TEXT_PRIMARY),
+                ft.Container(expand=True),
                 ft.ElevatedButton(
-                    "📋 Ver Vagas",
-                    icon=ft.Icons.LIST_ALT,
+                    content=ft.Row([
+                        ft.Icon(ft.Icons.WORK_HISTORY_ROUNDED, size=16, color=ft.Colors.WHITE),
+                        ft.Text("Ver Vagas", size=12, weight=ft.FontWeight.W_500, color=ft.Colors.WHITE),
+                    ], spacing=6),
                     bgcolor=PRIMARY,
-                    color=ft.Colors.WHITE,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=10),
+                        padding=ft.padding.symmetric(horizontal=14, vertical=10),
+                    ),
                     on_click=open_jobs_dialog,
                 ),
-            ]),
-            ft.Divider(height=1),
+            ], spacing=10),
+            ft.Container(height=4),
             ft.Container(
                 content=log_column,
                 bgcolor=DARK_BG,
-                border_radius=8,
-                padding=8,
-                height=150,
+                border_radius=12,
+                padding=12,
+                height=180,
             ),
-        ], spacing=10),
+        ], spacing=8),
         bgcolor=DARK_CARD,
-        border_radius=12,
-        padding=16,
+        border_radius=16,
+        padding=20,
+        border=ft.border.all(1, DARK_BORDER),
     )
     
     # Store panels for theme toggle
-    all_panels = [job_panel, info_panel, controls_panel, profile_panel, bio_panel, log_panel]
+    all_panels = [job_panel, info_panel, controls_panel, context_panel, log_panel]
     
-    # === FE-07: HEADER WITH THEME TOGGLE ===
-    def toggle_theme(e):
-        if page.theme_mode == ft.ThemeMode.DARK:
-            page.theme_mode = ft.ThemeMode.LIGHT
-            page.bgcolor = LIGHT_BG
-            for panel in all_panels:
-                panel.bgcolor = LIGHT_CARD
-        else:
-            page.theme_mode = ft.ThemeMode.DARK
-            page.bgcolor = DARK_BG
-            for panel in all_panels:
-                panel.bgcolor = DARK_CARD
-        page.update()
-    
+    # === FE-07: HEADER ===
     header = ft.Container(
         content=ft.Row([
             ft.Row([
-                ft.Icon(ft.Icons.SMART_TOY, size=36, color=PRIMARY),
-                ft.Text("BOTLink", size=28, weight=ft.FontWeight.BOLD),
-                ft.Text("v1.0", size=12, color=ft.Colors.GREY_500),
-            ], spacing=8),
-            ft.Row([
-                ft.Icon(ft.Icons.LIGHT_MODE, color=WARNING, size=18),
-                ft.Switch(value=True, on_change=toggle_theme),
-                ft.Icon(ft.Icons.DARK_MODE, color=PRIMARY, size=18),
-            ], spacing=4),
+                ft.Container(
+                    content=ft.Icon(ft.Icons.SMART_TOY_ROUNDED, size=28, color=ft.Colors.WHITE),
+                    gradient=ft.LinearGradient(
+                        colors=[PRIMARY, ACCENT],
+                    ),
+                    border_radius=14,
+                    padding=12,
+                    shadow=ft.BoxShadow(
+                        spread_radius=0,
+                        blur_radius=20,
+                        color=f"{PRIMARY}50",
+                        offset=ft.Offset(0, 4),
+                    ),
+                ),
+                ft.Column([
+                    ft.Text("BOTLink", size=28, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                    ft.Text("Automação Inteligente de Candidaturas", size=12, color=TEXT_MUTED),
+                ], spacing=0),
+            ], spacing=16),
+            ft.Container(
+                content=ft.Row([
+                    ft.Container(width=8, height=8, border_radius=4, bgcolor=SUCCESS),
+                    ft.Text("v2.0", size=12, color=TEXT_MUTED, weight=ft.FontWeight.W_500),
+                ], spacing=6),
+                bgcolor=DARK_CARD,
+                border_radius=20,
+                padding=ft.padding.symmetric(horizontal=12, vertical=6),
+                border=ft.border.all(1, DARK_BORDER),
+            ),
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-        padding=ft.padding.only(bottom=16),
+        padding=ft.padding.symmetric(horizontal=24, vertical=20),
+        bgcolor=DARK_BG,
     )
     
     # === MAIN LAYOUT ===
     left_column = ft.Column(
         [job_panel, info_panel, controls_panel],
-        spacing=16,
+        spacing=20,
     )
     
     right_column = ft.Column(
-        [profile_panel, bio_panel, log_panel],
-        spacing=16,
+        [context_panel, log_panel],
+        spacing=20,
     )
     
-    main_content = ft.ResponsiveRow([
-        ft.Container(content=left_column, col={"sm": 12, "md": 6}),
-        ft.Container(content=right_column, col={"sm": 12, "md": 6}),
-    ], spacing=24)
+    main_content = ft.Container(
+        content=ft.ResponsiveRow([
+            ft.Container(content=left_column, col={"sm": 12, "md": 6, "lg": 5}),
+            ft.Container(content=right_column, col={"sm": 12, "md": 6, "lg": 7}),
+        ], spacing=24),
+        padding=ft.padding.symmetric(horizontal=24, vertical=16),
+    )
     
     # === BUILD PAGE ===
     page.add(
         header,
-        ft.Divider(height=1),
+        ft.Container(
+            width=float("inf"),
+            height=1,
+            bgcolor=DARK_BORDER,
+        ),
         main_content,
     )
     
     # Welcome message
-    add_log("👋 BOTLink iniciado!", "info")
-    add_log("📋 Siga as instruções no painel 'Como Usar'", "info")
-    add_log("🔒 Suas credenciais nunca são armazenadas!", "success")
+    add_log("🚀 BOTLink v2.0 iniciado!", "success")
+    add_log("📋 Cole seu currículo no campo 'Contexto para IA'", "info")
+    add_log("🤖 A IA responderá perguntas automaticamente!", "success")

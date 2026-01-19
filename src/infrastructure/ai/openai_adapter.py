@@ -63,21 +63,42 @@ class OpenAIAdapter:
 
     async def complete(
         self,
-        prompt: PromptResult,
+        prompt: PromptResult | str,
         json_mode: bool = False,
         max_tokens: Optional[int] = None,
-    ) -> AIResponse:
+    ) -> AIResponse | str:
         """
         Send a completion request to GPT-4o.
         
         Args:
-            prompt: The prompt to send.
+            prompt: The prompt to send (PromptResult or plain string).
             json_mode: Whether to force JSON output.
             max_tokens: Maximum response tokens.
             
         Returns:
-            AIResponse with content and token usage.
+            AIResponse with content and token usage, or string if prompt was string.
         """
+        # Handle string prompts (simple mode)
+        if isinstance(prompt, str):
+            try:
+                if not self._client:
+                    self.initialize()
+                
+                response = await self.client.chat.completions.create(
+                    model=self.DEFAULT_MODEL,
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant for job applications. Be concise and professional."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    max_tokens=max_tokens or 100,
+                    temperature=0.7,
+                )
+                return response.choices[0].message.content or ""
+            except Exception as e:
+                print(f"OpenAI error: {e}")
+                return ""
+        
+        # Handle PromptResult prompts (structured mode)
         messages = [
             {"role": "system", "content": prompt.system_prompt},
             {"role": "user", "content": prompt.user_prompt},
